@@ -7,6 +7,7 @@
 /* className 来自 createItems，用颜色区分两个国家。 */
 .vis-item.dynasty-china { background: #fff0e5; border-color: #c76b32; color: #703715; }
 .vis-item.dynasty-japan { background: #eaf2ff; border-color: #527cc1; color: #274d87; }
+.vis-item.dynasty-britain { background: #eee8ff; border-color: #7658b8; color: #443276; }
 /* Timeline 选中条目时会自动添加 vis-selected。 */
 .vis-item.vis-selected { background: #fff5b5; border-color: #ad8500; }
 /* 左侧“中国/日本”分组标签。 */

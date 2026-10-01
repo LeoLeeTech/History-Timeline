@@ -12,8 +12,12 @@ import './App.css';
 // 负数表示公元前，例如 -221 表示公元前 221 年。
 type Period = [name: string, start: number, end: number];
 
-// 这里只保留常见、主要的中国朝代；存在时间重叠的时期会自动分到不同子行。
+// 中国约 3600 年可考文字史（约从商代甲骨文开始）。夏代年代存在争议，
+// 这里采用历史教学中常见的约数；分裂时期用一个“时代”条目概括。
 const chinesePeriods: Period[] = [
+  ['商', -1600, -1046],
+  ['西周', -1046, -771],
+  ['东周', -770, -256],
   ['秦', -221, -206],
   ['西汉', -206, 9],
   ['东汉', 25, 220],
@@ -22,14 +26,30 @@ const chinesePeriods: Period[] = [
   ['南北朝', 420, 589],
   ['隋', 581, 618],
   ['唐', 618, 907],
+  ['五代十国', 907, 979],
   ['宋', 960, 1279],
   ['元', 1271, 1368],
   ['明', 1368, 1644],
   ['清', 1636, 1912],
+  ['中华民国', 1912, 1949],
+  ['中华人民共和国', 1949, new Date().getFullYear() + 1],
 ];
 
-// 日本按历史时代和近现代年号划分。
+// 英国从盎格鲁-撒克逊诸王国到今天的王朝与主要历史时期。
+const britishPeriods: Period[] = [
+  ['盎格鲁-撒克逊诸王国', 450, 1066],
+  ['诺曼王朝', 1066, 1154],
+  ['金雀花王朝', 1154, 1485],
+  ['都铎王朝', 1485, 1603],
+  ['斯图亚特王朝', 1603, 1714],
+  ['汉诺威王朝', 1714, 1901],
+  ['萨克森-科堡-哥达王朝', 1901, 1917],
+  ['温莎王朝', 1917, new Date().getFullYear() + 1],
+];
+
+// 日本从绳文时代到令和时代；古代早期年代为考古学常用约数。
 const japanesePeriods: Period[] = [
+  ['弥生时代', -900, 250],
   ['古坟时代', 250, 538],
   ['飞鸟时代', 538, 710],
   ['奈良时代', 710, 794],
@@ -64,29 +84,31 @@ function createItems(group: string, periods: Period[]): DataItem[] {
   // laneEnds[i] 记录第 i 行最后一个朝代的结束年份。
   // 新朝代如果从 previousEnd 开始或更晚，就可以复用这一行。
   const laneEnds: number[] = [];
-  return periods
-    // 先按开始年份排序，保证分行算法从时间轴左侧向右侧处理。
-    .toSorted((a, b) => a[1] - b[1])
-    .map(([name, start, end], index) => {
-      let lane = laneEnds.findIndex((previousEnd) => previousEnd <= start);
-      // 没有空闲行，说明它和现有朝代真实重叠，需要新建一行。
-      if (lane === -1) lane = laneEnds.length;
-      laneEnds[lane] = end;
-      return {
-        id: `${group}-${index}`,
-        group,
-        // subgroup 是组内的固定行。Timeline 会按照 subgroupOrder 排列这些行。
-        subgroup: lane,
-        content: name,
-        start: yearDate(start),
-        end: yearDate(end),
-        type: 'range',
-        className: `dynasty-${group}`,
-        title: `${name}：${
-          start < 0 ? `公元前${-start}年` : `${start}年`
-        }至${end}年`,
-      };
-    });
+  return (
+    periods
+      // 先按开始年份排序，保证分行算法从时间轴左侧向右侧处理。
+      .toSorted((a, b) => a[1] - b[1])
+      .map(([name, start, end], index) => {
+        let lane = laneEnds.findIndex((previousEnd) => previousEnd <= start);
+        // 没有空闲行，说明它和现有朝代真实重叠，需要新建一行。
+        if (lane === -1) lane = laneEnds.length;
+        laneEnds[lane] = end;
+        return {
+          id: `${group}-${index}`,
+          group,
+          // subgroup 是组内的固定行。Timeline 会按照 subgroupOrder 排列这些行。
+          subgroup: lane,
+          content: name,
+          start: yearDate(start),
+          end: yearDate(end),
+          type: 'range',
+          className: `dynasty-${group}`,
+          title: `${name}：${
+            start < 0 ? `公元前${-start}年` : `${start}年`
+          }至${end}年`,
+        };
+      })
+  );
 }
 
 function App() {
@@ -98,21 +120,23 @@ function App() {
     if (!container) return;
 
     // DataSet 不只是普通数组：它是 vis-timeline 推荐的数据源，支持实时更新。
-    // DataGroup 描述左侧的“中国”和“日本”两条主分组。
+    // DataGroup 描述左侧的三个主分组。
     const groups = new DataSet<DataGroup>([
       { id: 'china', content: '中国', subgroupOrder: 'subgroup' },
       { id: 'japan', content: '日本', subgroupOrder: 'subgroup' },
+      { id: 'britain', content: '英国', subgroupOrder: 'subgroup' },
     ]);
     const items = new DataSet<DataItem>([
       ...createItems('china', chinesePeriods),
       ...createItems('japan', japanesePeriods),
+      ...createItems('britain', britishPeriods),
     ]);
     const options: TimelineOptions = {
       // 初始可视范围，以及用户拖动时允许到达的边界。
-      start: yearDate(-250),
+      start: yearDate(-2500),
       end: yearDate(2050),
-      min: yearDate(-300),
-      max: yearDate(2100),
+      min: yearDate(-2000),
+      max: yearDate(2050),
       // 只显示年份刻度；rangechanged 中会根据缩放范围动态调整 step。
       timeAxis: { scale: 'year', step: 100 },
       format: {
@@ -120,7 +144,7 @@ function App() {
           // vis-timeline 实际传入的是 Moment，类型声明兼容为 Date，
           // 所以通过 valueOf() 统一转换成原生 Date。
           const year = new Date(date.valueOf()).getFullYear();
-          return year <= 0 ? `公元前${1 - year}年` : `${year}年`;
+          return `${year}`;
         },
       },
       // 隐藏当前时间线和大刻度，避免历史时间轴出现今天的标记。
@@ -168,7 +192,6 @@ function App() {
 
   return (
     <main className="history-timeline">
-      <h1>中国与日本历史时间轴</h1>
       <div
         ref={timelineRef}
         className="timeline-container"
