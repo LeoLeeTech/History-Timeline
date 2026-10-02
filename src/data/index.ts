@@ -5,7 +5,7 @@ const modules = import.meta.glob<{ items: Period[] }>('./groups/*.ts', { eager: 
 const knownGroups: Record<string, string> = {
   中国: 'china', 日本: 'japan', 欧洲: 'europe', 美国: 'america',
 };
-const regions = ['中国', '日本', '欧洲', '美国'];
+const regions = ['中国', '欧洲', '美国', '日本'];
 const categories = ['朝代', '人物', '事件'];
 const order = regions.flatMap((region) => categories.map((category) => `${region}${category}`));
 

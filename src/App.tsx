@@ -71,6 +71,8 @@ function App() {
     })));
     const items = new DataSet<DataItem>(historyGroups.flatMap(({ id, items, itemClassName }) => createItems(id, items, itemClassName)));
     const options: TimelineOptions = {
+      // 年份刻度放在顶部；组内条目仍沿用原来的排列方向。
+      orientation: { axis: 'top', item: 'bottom' },
       // 初始可视范围，以及用户拖动时允许到达的边界。
       start: yearDate(-4000),
       end: yearDate(2050),
