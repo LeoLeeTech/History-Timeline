@@ -8,73 +8,8 @@ import { Timeline } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.min.css';
 import './App.css';
 
-// 一个朝代由“名称、开始年份、结束年份”组成。
-// 负数表示公元前，例如 -221 表示公元前 221 年。
-type Period = [name: string, start: number, end: number];
-
-// 中国约 3600 年可考文字史（约从商代甲骨文开始）。夏代年代存在争议，
-// 这里采用历史教学中常见的约数；分裂时期用一个“时代”条目概括。
-const chinesePeriods: Period[] = [
-  ['商', -1600, -1046],
-  ['西周', -1046, -771],
-  ['东周', -770, -256],
-  ['秦', -221, -206],
-  ['西汉', -206, 9],
-  ['东汉', 25, 220],
-  ['三国', 220, 280],
-  ['晋', 266, 420],
-  ['南北朝', 420, 589],
-  ['隋', 581, 618],
-  ['唐', 618, 907],
-  ['五代十国', 907, 979],
-  ['宋', 960, 1279],
-  ['元', 1271, 1368],
-  ['明', 1368, 1644],
-  ['清', 1636, 1912],
-  ['中华民国', 1912, 1949],
-  ['中华人民共和国', 1949, new Date().getFullYear() + 1],
-];
-
-// 日本从绳文时代到令和时代；古代早期年代为考古学常用约数。
-const japanesePeriods: Period[] = [
-  ['弥生时代', -900, 250],
-  ['古坟时代', 250, 538],
-  ['飞鸟时代', 538, 710],
-  ['奈良时代', 710, 794],
-  ['平安时代', 794, 1185],
-  ['镰仓时代', 1185, 1333],
-  ['建武新政', 1333, 1336],
-  ['室町时代', 1336, 1573],
-  ['安土桃山时代', 1573, 1603],
-  ['江户时代', 1603, 1868],
-  ['明治', 1868, 1912],
-  ['大正', 1912, 1926],
-  ['昭和', 1926, 1989],
-  ['平成', 1989, 2019],
-  ['令和', 2019, new Date().getFullYear() + 1],
-];
-
-
-// 欧洲重点标出文艺复兴，并保留其前后的思想与社会转折。
-const europeanPeriods: Period[] = [
-  ['古典希腊罗马世界', -800, 476],
-  ['中世纪欧洲', 476, 1300],
-  ['文艺复兴', 1300, 1600],
-  ['宗教改革', 1517, 1648],
-  ['科学革命', 1543, 1687],
-  ['启蒙时代', 1685, 1815],
-  ['工业革命', 1760, 1840],
-  ['现代欧洲', 1815, new Date().getFullYear() + 1],
-];
-
-const americanPeriods: Period[] = [
-  ['十三殖民地时期', 1607, 1776],
-  ['美国独立战争', 1775, 1783],
-  ['美国建国初期', 1776, 1861],
-  ['美国南北战争', 1861, 1865],
-  ['重建与工业化', 1865, 1914],
-  ['现代美国', 1914, new Date().getFullYear() + 1],
-];
+import { historyGroups } from './data';
+import type { Period } from './data/types';
 
 /**
  * 将历史年份转换成 Date。
@@ -90,7 +25,7 @@ function yearDate(year: number): Date {
   return date;
 }
 
-function createItems(group: string, periods: Period[]): DataItem[] {
+function createItems(group: string, periods: Period[], itemClassName: string): DataItem[] {
   // laneEnds[i] 记录第 i 行最后一个朝代的结束年份。
   // 新朝代如果从 previousEnd 开始或更晚，就可以复用这一行。
   const laneEnds: number[] = [];
@@ -102,7 +37,8 @@ function createItems(group: string, periods: Period[]): DataItem[] {
         let lane = laneEnds.findIndex((previousEnd) => previousEnd <= start);
         // 没有空闲行，说明它和现有朝代真实重叠，需要新建一行。
         if (lane === -1) lane = laneEnds.length;
-        laneEnds[lane] = end;
+        // 单年事件保留一年占位用于分行，但画面仍以时间点表示。
+        laneEnds[lane] = end === start ? start + 1 : end;
         return {
           id: `${group}-${index}`,
           group,
@@ -110,9 +46,9 @@ function createItems(group: string, periods: Period[]): DataItem[] {
           subgroup: lane,
           content: name,
           start: yearDate(start),
-          end: yearDate(end),
-          type: 'range',
-          className: `dynasty-${group}`,
+          end: end === start ? undefined : yearDate(end),
+          type: end === start ? 'point' : 'range',
+          className: itemClassName,
           title: `${name}：${
             start < 0 ? `公元前${-start}年` : `${start}年`
           }至${end}年`,
@@ -129,20 +65,11 @@ function App() {
     const container = timelineRef.current;
     if (!container) return;
 
-    // DataSet 不只是普通数组：它是 vis-timeline 推荐的数据源，支持实时更新。
-    // DataGroup 描述左侧的三个主分组。
-    const groups = new DataSet<DataGroup>([
-      { id: 'china', content: '中国', subgroupOrder: 'subgroup' },
-      { id: 'japan', content: '日本', subgroupOrder: 'subgroup' },
-      { id: 'europe', content: '欧洲', subgroupOrder: 'subgroup' },
-      { id: 'america', content: '美国', subgroupOrder: 'subgroup' },
-    ]);
-    const items = new DataSet<DataItem>([
-      ...createItems('china', chinesePeriods),
-      ...createItems('japan', japanesePeriods),
-      ...createItems('europe', europeanPeriods),
-      ...createItems('america', americanPeriods),
-    ]);
+    // 根据数据目录自动生成分组，新增文件无需修改组件。
+    const groups = new DataSet<DataGroup>(historyGroups.map(({ id, name, className }) => ({
+      id, content: name, className, subgroupOrder: 'subgroup',
+    })));
+    const items = new DataSet<DataItem>(historyGroups.flatMap(({ id, items, itemClassName }) => createItems(id, items, itemClassName)));
     const options: TimelineOptions = {
       // 初始可视范围，以及用户拖动时允许到达的边界。
       start: yearDate(-4000),
@@ -169,6 +96,7 @@ function App() {
       stack: false,
       stackSubgroups: true,
       margin: { item: { horizontal: 0, vertical: 12 }, axis: 16 },
+      groupEditable: {remove: true, order: true}
     };
 
     // Timeline 是一个命令式第三方对象，而 React 是声明式的。
