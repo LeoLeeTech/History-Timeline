@@ -8,6 +8,10 @@
 .vis-item.dynasty-china { background: #fff0e5; border-color: #c76b32; color: #703715; }
 .vis-item.dynasty-japan { background: #eaf2ff; border-color: #527cc1; color: #274d87; }
 .vis-item.dynasty-britain { background: #eee8ff; border-color: #7658b8; color: #443276; }
+.vis-item.dynasty-civilizations { background: #fff8d8; border-color: #b99522; color: #6d5600; }
+.vis-item.dynasty-europe { background: #e8f7ee; border-color: #3d9560; color: #205d38; }
+.vis-item.dynasty-america { background: #ffe8ec; border-color: #c24f68; color: #7d2639; }
+.vis-item.dynasty-people { background: #f1eafa; border-color: #8a5ab5; color: #593578; }
 /* Timeline 选中条目时会自动添加 vis-selected。 */
 .vis-item.vis-selected { background: #fff5b5; border-color: #ad8500; }
 /* 左侧“中国/日本”分组标签。 */

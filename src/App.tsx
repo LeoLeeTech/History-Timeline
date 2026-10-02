@@ -35,18 +35,6 @@ const chinesePeriods: Period[] = [
   ['中华人民共和国', 1949, new Date().getFullYear() + 1],
 ];
 
-// 英国从盎格鲁-撒克逊诸王国到今天的王朝与主要历史时期。
-const britishPeriods: Period[] = [
-  ['盎格鲁-撒克逊诸王国', 450, 1066],
-  ['诺曼王朝', 1066, 1154],
-  ['金雀花王朝', 1154, 1485],
-  ['都铎王朝', 1485, 1603],
-  ['斯图亚特王朝', 1603, 1714],
-  ['汉诺威王朝', 1714, 1901],
-  ['萨克森-科堡-哥达王朝', 1901, 1917],
-  ['温莎王朝', 1917, new Date().getFullYear() + 1],
-];
-
 // 日本从绳文时代到令和时代；古代早期年代为考古学常用约数。
 const japanesePeriods: Period[] = [
   ['弥生时代', -900, 250],
@@ -64,6 +52,28 @@ const japanesePeriods: Period[] = [
   ['昭和', 1926, 1989],
   ['平成', 1989, 2019],
   ['令和', 2019, new Date().getFullYear() + 1],
+];
+
+
+// 欧洲重点标出文艺复兴，并保留其前后的思想与社会转折。
+const europeanPeriods: Period[] = [
+  ['古典希腊罗马世界', -800, 476],
+  ['中世纪欧洲', 476, 1300],
+  ['文艺复兴', 1300, 1600],
+  ['宗教改革', 1517, 1648],
+  ['科学革命', 1543, 1687],
+  ['启蒙时代', 1685, 1815],
+  ['工业革命', 1760, 1840],
+  ['现代欧洲', 1815, new Date().getFullYear() + 1],
+];
+
+const americanPeriods: Period[] = [
+  ['十三殖民地时期', 1607, 1776],
+  ['美国独立战争', 1775, 1783],
+  ['美国建国初期', 1776, 1861],
+  ['美国南北战争', 1861, 1865],
+  ['重建与工业化', 1865, 1914],
+  ['现代美国', 1914, new Date().getFullYear() + 1],
 ];
 
 /**
@@ -124,16 +134,18 @@ function App() {
     const groups = new DataSet<DataGroup>([
       { id: 'china', content: '中国', subgroupOrder: 'subgroup' },
       { id: 'japan', content: '日本', subgroupOrder: 'subgroup' },
-      { id: 'britain', content: '英国', subgroupOrder: 'subgroup' },
+      { id: 'europe', content: '欧洲', subgroupOrder: 'subgroup' },
+      { id: 'america', content: '美国', subgroupOrder: 'subgroup' },
     ]);
     const items = new DataSet<DataItem>([
       ...createItems('china', chinesePeriods),
       ...createItems('japan', japanesePeriods),
-      ...createItems('britain', britishPeriods),
+      ...createItems('europe', europeanPeriods),
+      ...createItems('america', americanPeriods),
     ]);
     const options: TimelineOptions = {
       // 初始可视范围，以及用户拖动时允许到达的边界。
-      start: yearDate(-2500),
+      start: yearDate(-4000),
       end: yearDate(2050),
       min: yearDate(-2000),
       max: yearDate(2050),
