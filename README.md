@@ -1,32 +1,27 @@
-# React + TypeScript + Vite
+## 世界历史时间线(可在线动态体验)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+慈禧喝过可乐, 坐过汽车
 
-Currently, two official plugins are available:
+阿基米德要翘起地球时, 秦始皇刚统一六国
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+孔子孟子和苏格拉底柏拉图亚里士多德一块讨论哲学
 
-## React Compiler
+欧洲文艺复兴, 开始以人为本, 成吉思汗刚烧杀抢掠, 建立元朝
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+哥白尼的日心说发表时, 朱元璋的九子夺嫡刚有结果
 
-## Expanding the Oxlint configuration
+伽利略牛顿在奠定物理基本规律时, 清朝入主中原
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+达尔文居里夫人马克思和慈禧各自努力
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+爱因斯坦在探索宇宙, 爱迪生在发明灯泡, 马克吐温在写小说, 福特在流水线造汽车, 孙中山鲁迅在忙着驱除鞑虏, 恢复中华
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+前后买了四本世界史，还是稀里糊涂，故这两天做了一个小项目, 欢迎体验, 请点击这[世界历史时间线在线体验](https://timeline.leolee.tech/)
+
+
+## 技术介绍
+React + vis-timeline
+
+
+
+

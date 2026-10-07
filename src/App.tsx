@@ -74,6 +74,8 @@ function createItems(group: string, periods: Period[], itemClassName: string): D
 }
 
 function App() {
+  // 热更新会重新渲染组件，用新的数据引用同步第三方时间线。
+  const timelineData = historyGroups;
   // 这个 ref 最终会指向 JSX 中的 div，Timeline 会把自己的 DOM 渲染到这里。
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -82,11 +84,10 @@ function App() {
     if (!container) return;
 
     // 根据数据目录自动生成分组，新增文件无需修改组件。
-    const groups = new DataSet<DataGroup>(historyGroups.map(({ id, name, className }) => ({
+    const groups = new DataSet<DataGroup>(timelineData.map(({ id, name, className }) => ({
       id, content: name, className, subgroupOrder: 'subgroup',
     })));
-    const items = new DataSet<DataItem>(historyGroups.flatMap(({ id, items, itemClassName }) => createItems(id, items, itemClassName)));
-    let axisScale: 'year' | 'month' | 'day' = 'year';
+    const items = new DataSet<DataItem>(timelineData.flatMap(({ id, items, itemClassName }) => createItems(id, items, itemClassName)));
     const options: TimelineOptions = {
       // 年份刻度放在顶部；组内条目仍沿用原来的排列方向。
       orientation: { axis: 'top', item: 'bottom' },
@@ -95,25 +96,20 @@ function App() {
       end: yearDate(2050),
       min: yearDate(-2000),
       max: yearDate(2050),
-      // 根据缩放范围动态切换年、月、日刻度，最细为 1 天。
+      // 根据缩放范围调整年份刻度，最细为 1 年。
       timeAxis: { scale: 'year', step: 100 },
       format: {
         minorLabels: (date) => {
           // vis-timeline 实际传入的是 Moment，类型声明兼容为 Date，
           // 所以通过 valueOf() 统一转换成原生 Date。
           const year = new Date(date.valueOf()).getFullYear();
-          const nativeDate = new Date(date.valueOf());
-          return axisScale === 'day'
-            ? `${year}年${nativeDate.getMonth() + 1}月${nativeDate.getDate()}日`
-            : axisScale === 'month'
-            ? `${year}年${nativeDate.getMonth() + 1}月`
-            : `${year}`;
+          return `${year}`;
         },
       },
       // 隐藏当前时间线和大刻度，避免历史时间轴出现今天的标记。
       showMajorLabels: false,
       showCurrentTime: false,
-      zoomMin: 24 * 60 * 60 * 1000,
+      zoomMin: 365.25 * 24 * 60 * 60 * 1000,
       // zoomFriction 越大，滚轮缩放越慢；默认值约为 5，这里设为 25。
       zoomFriction: 25,
       // 关闭整个分组的自动堆叠，交给 subgroup 处理真实重叠的条目。
@@ -128,7 +124,7 @@ function App() {
     const timeline = new Timeline(container, items, groups, options);
 
     // 可视范围变化时，按照当前显示的年份跨度调整刻度密度：
-    // 远景使用年份刻度，近景逐渐切换到月份和日期。
+    // 远景使用较大的年份间隔，近景最细显示每年一个刻度。
     const onRangeChanged = () => {
       const { start, end } = timeline.getWindow();
       const years = (end.getTime() - start.getTime()) / (365.25 * 86400000);
@@ -142,11 +138,7 @@ function App() {
           : years > 100
           ? 10
           : 5;
-      axisScale = years > 2 ? 'year' : years > 2 / 12 ? 'month' : 'day';
-      timeline.setOptions({ timeAxis: {
-        scale: axisScale,
-        step: axisScale === 'year' ? (years > 10 ? step : 1) : 1,
-      } });
+      timeline.setOptions({ timeAxis: { scale: 'year', step: years > 10 ? step : 1 } });
     };
     timeline.on('rangechanged', onRangeChanged);
 
@@ -156,7 +148,7 @@ function App() {
       timeline.off('rangechanged', onRangeChanged);
       timeline.destroy();
     };
-  }, []);
+  }, [timelineData]);
 
   return (
     <main className="history-timeline">
