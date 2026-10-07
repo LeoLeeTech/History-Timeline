@@ -25,33 +25,49 @@ function yearDate(year: number): Date {
   return date;
 }
 
+// 日期字符串按本地日历解析，避免 UTC 时区转换导致日期偏移。
+function historyDate(value: number | string): Date {
+  if (typeof value === 'number') return yearDate(value);
+  const [year, month, day] = value.split('-').map(Number);
+  const date = yearDate(year);
+  date.setMonth(month - 1, day);
+  return date;
+}
+
+function dateLabel(value: number | string): string {
+  if (typeof value === 'number') return value < 0 ? `公元前${-value}年` : `${value}年`;
+  const [year, month, day] = value.split('-').map(Number);
+  return `${year}年${month}月${day}日`;
+}
+
 function createItems(group: string, periods: Period[], itemClassName: string): DataItem[] {
-  // laneEnds[i] 记录第 i 行最后一个朝代的结束年份。
+  // laneEnds[i] 记录第 i 行最后一个条目的结束时间戳。
   // 新朝代如果从 previousEnd 开始或更晚，就可以复用这一行。
   const laneEnds: number[] = [];
   return (
     periods
-      // 先按开始年份排序，保证分行算法从时间轴左侧向右侧处理。
-      .toSorted((a, b) => a[1] - b[1])
+      // 先按开始日期排序，保证分行算法从时间轴左侧向右侧处理。
+      .toSorted((a, b) => historyDate(a[1]).getTime() - historyDate(b[1]).getTime())
       .map(([name, start, end], index) => {
-        let lane = laneEnds.findIndex((previousEnd) => previousEnd <= start);
+        const startDate = historyDate(start);
+        const endDate = historyDate(end);
+        const isPoint = startDate.getTime() === endDate.getTime();
+        let lane = laneEnds.findIndex((previousEnd) => previousEnd <= startDate.getTime());
         // 没有空闲行，说明它和现有朝代真实重叠，需要新建一行。
         if (lane === -1) lane = laneEnds.length;
-        // 单年事件保留一年占位用于分行，但画面仍以时间点表示。
-        laneEnds[lane] = end === start ? start + 1 : end;
+        // 时间点保留一天占位用于分行。
+        laneEnds[lane] = isPoint ? startDate.getTime() + 86400000 : endDate.getTime();
         return {
           id: `${group}-${index}`,
           group,
           // subgroup 是组内的固定行。Timeline 会按照 subgroupOrder 排列这些行。
           subgroup: lane,
           content: name,
-          start: yearDate(start),
-          end: end === start ? undefined : yearDate(end),
-          type: end === start ? 'point' : 'range',
+          start: startDate,
+          end: isPoint ? undefined : endDate,
+          type: isPoint ? 'point' : 'range',
           className: itemClassName,
-          title: `${name}：${
-            start < 0 ? `公元前${-start}年` : `${start}年`
-          }至${end}年`,
+          title: `${name}：${dateLabel(start)}${isPoint ? '' : `至${dateLabel(end)}`}`,
         };
       })
   );
@@ -70,6 +86,7 @@ function App() {
       id, content: name, className, subgroupOrder: 'subgroup',
     })));
     const items = new DataSet<DataItem>(historyGroups.flatMap(({ id, items, itemClassName }) => createItems(id, items, itemClassName)));
+    let axisScale: 'year' | 'month' | 'day' = 'year';
     const options: TimelineOptions = {
       // 年份刻度放在顶部；组内条目仍沿用原来的排列方向。
       orientation: { axis: 'top', item: 'bottom' },
@@ -78,20 +95,25 @@ function App() {
       end: yearDate(2050),
       min: yearDate(-2000),
       max: yearDate(2050),
-      // 只显示年份刻度；rangechanged 中会根据缩放范围动态调整 step。
+      // 根据缩放范围动态切换年、月、日刻度，最细为 1 天。
       timeAxis: { scale: 'year', step: 100 },
       format: {
         minorLabels: (date) => {
           // vis-timeline 实际传入的是 Moment，类型声明兼容为 Date，
           // 所以通过 valueOf() 统一转换成原生 Date。
           const year = new Date(date.valueOf()).getFullYear();
-          return `${year}`;
+          const nativeDate = new Date(date.valueOf());
+          return axisScale === 'day'
+            ? `${year}年${nativeDate.getMonth() + 1}月${nativeDate.getDate()}日`
+            : axisScale === 'month'
+            ? `${year}年${nativeDate.getMonth() + 1}月`
+            : `${year}`;
         },
       },
       // 隐藏当前时间线和大刻度，避免历史时间轴出现今天的标记。
       showMajorLabels: false,
       showCurrentTime: false,
-      zoomMin: 50 * 365.25 * 24 * 60 * 60 * 1000,
+      zoomMin: 24 * 60 * 60 * 1000,
       // zoomFriction 越大，滚轮缩放越慢；默认值约为 5，这里设为 25。
       zoomFriction: 25,
       // 关闭整个分组的自动堆叠，交给 subgroup 处理真实重叠的条目。
@@ -106,7 +128,7 @@ function App() {
     const timeline = new Timeline(container, items, groups, options);
 
     // 可视范围变化时，按照当前显示的年份跨度调整刻度密度：
-    // 远景显示 100 年一个刻度，放大后逐渐变成 50、20、10、5 年一个刻度。
+    // 远景使用年份刻度，近景逐渐切换到月份和日期。
     const onRangeChanged = () => {
       const { start, end } = timeline.getWindow();
       const years = (end.getTime() - start.getTime()) / (365.25 * 86400000);
@@ -120,7 +142,11 @@ function App() {
           : years > 100
           ? 10
           : 5;
-      timeline.setOptions({ timeAxis: { scale: 'year', step } });
+      axisScale = years > 2 ? 'year' : years > 2 / 12 ? 'month' : 'day';
+      timeline.setOptions({ timeAxis: {
+        scale: axisScale,
+        step: axisScale === 'year' ? (years > 10 ? step : 1) : 1,
+      } });
     };
     timeline.on('rangechanged', onRangeChanged);
 
